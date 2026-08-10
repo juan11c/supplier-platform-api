@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SupplierPlatform.Api/SupplierPlatform.Api.csproj" />
+  <Project Path="SupplierPlatform.Application/SupplierPlatform.Application.csproj" />
+  <Project Path="SupplierPlatform.Domain/SupplierPlatform.Domain.csproj" />
+  <Project Path="SupplierPlatform.Infrastructure/SupplierPlatform.Infrastructure.csproj" />
+</Solution>
