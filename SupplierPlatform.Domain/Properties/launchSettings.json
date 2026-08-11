@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "SupplierPlatform.Domain": {
+      "commandName": "Project"
+    },
+    "Perfil 1": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\ivan\\Documents\\NET\\proyectos c#\\ProveedorApp\\ProveedorApp.slnx"
+    }
+  }
+}
