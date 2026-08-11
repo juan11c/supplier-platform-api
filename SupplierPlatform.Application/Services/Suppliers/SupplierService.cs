@@ -9,11 +9,13 @@ namespace SupplierPlatform.Application.Services.Suppliers;
 public class SupplierService : ISupplierService
 {
     private readonly ISupplierRepository _supplierRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IClaimTokenGenerator _tokenGenerator;
 
-    public SupplierService(ISupplierRepository supplierRepository, IClaimTokenGenerator tokenGenerator)
+    public SupplierService(ISupplierRepository supplierRepository, IUserRepository userRepository, IClaimTokenGenerator tokenGenerator)
     {
         _supplierRepository = supplierRepository;
+        _userRepository = userRepository;
         _tokenGenerator = tokenGenerator;
     }
 
@@ -63,9 +65,13 @@ public class SupplierService : ISupplierService
             IsActive = true
         };
 
-        supplier.User = newUser;
+        // 1. Registrar primero el usuario en la BD para generar la referencia real
+        await _userRepository.AddAsync(newUser);
+
+        // 2. Asociar el UserId y actualizar el estado del perfil
+        supplier.UserId = newUser.Id;
         supplier.Status = ProfileStatus.Active;
-        supplier.ClaimToken = null; // Se inactiva el token tras reclamar el perfil
+        supplier.ClaimToken = null;
         supplier.ClaimTokenExpiresAt = null;
 
         await _supplierRepository.UpdateAsync(supplier);
