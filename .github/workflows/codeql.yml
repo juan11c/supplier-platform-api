@@ -1,4 +1,4 @@
-name: "CodeQL Advanced"
+name: "DevSecOps Security Pipeline"
 
 on:
   push:
@@ -6,42 +6,71 @@ on:
   pull_request:
     branches: [ "main" ]
   schedule:
-    - cron: '28 2 * * 0'
+    - cron: '0 2 * * 0' # Se ejecuta cada domingo a las 2:00 AM
 
 jobs:
-  analyze:
-    name: Analyze (csharp)
+  secret-scanning:
+    name: Secret Scanning (Gitleaks)
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Descarga todo el historial para buscar secretos en commits pasados
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sast-codeql:
+    name: SAST Analysis (CodeQL)
+    runs-on: ubuntu-latest
+    needs: secret-scanning
     permissions:
       security-events: write
-      packages: read
-      actions: read
       contents: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: 'csharp'
-            build-mode: 'autobuild'
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup .NET SDK 8.0
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET SDK 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: '**/*.csproj'
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-        queries: security-extended
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'csharp'
+          build-mode: 'manual'
+          queries: security-and-quality
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{ matrix.language }}"
+      - name: Restore dependencies
+        run: dotnet restore SupplierPlatform.sln
+
+      - name: Build Solution (Release)
+        run: dotnet build SupplierPlatform.sln --configuration Release --no-restore
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  sca-trivy:
+    name: SCA & IaC Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: secret-scanning
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1' # Hace fallar el pipeline si encuentra vulnerabilidades CRÍTICAS
+          severity: 'CRITICAL,HIGH'
