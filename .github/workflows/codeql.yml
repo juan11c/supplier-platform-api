@@ -50,10 +50,10 @@ jobs:
           queries: security-and-quality
 
       - name: Restore dependencies
-        run: dotnet restore SupplierPlatform.sln
+        run: dotnet restore ProveedorApp.slnx
 
       - name: Build Solution (Release)
-        run: dotnet build SupplierPlatform.sln --configuration Release --no-restore
+        run: dotnet build ProveedorApp.slnx --configuration Release --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
